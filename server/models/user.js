@@ -70,10 +70,11 @@ UserSchema.statics.findByToken = function (token) {
     });
 };
 
-UserSchema.pre('save', function (next) {
+//salt and hash password before saving to database
+UserSchema.pre('save', function (next) { //mongoose middleware
     var user = this;
 
-    if (user.isModified('password')) {
+    if (user.isModified('password')) { //ensure that password is new to prevent rehashing the hash
         bcrypt.genSalt(10, (err, salt) => {
             bcrypt.hash(user.password, salt, (err, hash) => {
                 user.password = hash;
