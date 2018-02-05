@@ -40,16 +40,15 @@ UserSchema.methods.toJSON = function () {
   return _.pick(userObject, ['_id', 'email']);
 };
 
-UserSchema.methods.generateAuthToken = function () {
+UserSchema.methods.generateAuthToken = async function () {
   var user = this;
   var access = 'auth';
   var token = jwt.sign({_id: user._id.toHexString(), access}, process.env.JWT_SECRET).toString();
 
   user.tokens.push({access, token});
 
-  return user.save().then(() => {
-    return token;
-  });
+  await user.save();
+  return token;
 };
 
 UserSchema.methods.removeToken = function (token) {
@@ -79,12 +78,14 @@ UserSchema.statics.findByToken = function (token) {
   });
 };
 
-UserSchema.statics.findByCredentials = function (email, password) {
+UserSchema.statics.findByCredentials = async function (email, password) {
   var User = this;
 
-  return User.findOne({email}).then((user) => {
+  try {
+    const user = await User.findOne({email});
+
     if (!user) {
-      return Promise.reject();
+      throw new Error();
     }
 
     return new Promise ((resolve, reject) => {
@@ -96,8 +97,9 @@ UserSchema.statics.findByCredentials = function (email, password) {
         }
       });
     });
-
-  });
+  } catch (e) {
+    throw new Error('The username and password combination is invalid.')
+  }
 };
 
 UserSchema.pre('save', function (next) {
